@@ -3,3 +3,9 @@ __pycache__/
 tasks.json
 bandit-report.json
 coverage.xml
+*.docx
+*.pdf
+docs_assets/
+generate_report.py
+~$*
+*.tmp
