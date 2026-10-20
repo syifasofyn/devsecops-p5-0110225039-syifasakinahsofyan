@@ -1,3 +1,5 @@
 __pycache__/
 *.pyc
 tasks.json
+bandit-report.json
+coverage.xml

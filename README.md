@@ -7,14 +7,14 @@ dan menghapus tugas. Data disimpan dalam file `tasks.json`.
 
 ## 2. Bahasa dan Framework
 - Bahasa: Python 3
-- Framework: tidak ada (hanya library bawaan Python)
-- Unit test: `unittest`
-- SAST tool: Bandit
+- Framework: Library standar Python
+- Unit Test: `unittest`
+- SAST Tools: Bandit, SonarCloud, dan CodeQL
 
 ## 3. Cara Menjalankan Aplikasi
 ```bash
-git clone https://github.com/[USERNAME]/devsecops-p5-[NIM].git
-cd devsecops-p5-[NIM]
+git clone https://github.com/syifasofyn/devsecops-p5-0110225039-syifasakinahsofyan.git
+cd devsecops-p5-0110225039-syifasakinahsofyan
 python main.py
 ```
 
@@ -24,32 +24,39 @@ python -m unittest discover -s tests -v
 ```
 
 ## 4. Struktur Proyek
-| File | Fungsi |
+| File / Direktori | Fungsi |
 |---|---|
-| `main.py` | Menu utama program |
-| `task.py` | Model data tugas |
-| `storage.py` | Simpan/baca data JSON |
-| `manager.py` | Logika pengelolaan tugas |
-| `validator.py` | Validasi input |
-| `tests/test_manager.py` | Unit test |
-| `quality_gate.py` | Penentu lulus/gagal hasil SAST |
+| `main.py` | Antarmuka CLI interaktif menu utama aplikasi |
+| `task.py` | Model data tugas (Task) |
+| `storage.py` | Penyimpanan data ke file `tasks.json` |
+| `manager.py` | Logika bisnis manajemen tugas (tambah, selesai, hapus, daftar) |
+| `validator.py` | Validasi judul dan ID tugas |
+| `tests/test_manager.py` | Unit test untuk manager dan validator |
+| `quality_gate.py` | Script Quality Gate untuk verifikasi temuan Bandit |
+| `sonar-project.properties` | Konfigurasi analisis SonarCloud |
+| `.github/workflows/devsecops.yml` | Pipeline CI/CD GitHub Actions (Build, Bandit, Quality Gate, SonarCloud) |
+| `.github/workflows/codeql.yml` | Pipeline GitHub Actions untuk analisis keamanan mendalam CodeQL |
 
 ## 5. Overview Pipeline CI/CD
-Workflow: `.github/workflows/devsecops.yml`
 
-**Trigger:** push ke branch `main` dan pull request ke branch `main`.
+### A. Workflow DevSecOps (`.github/workflows/devsecops.yml`)
+- **Trigger:** `push` dan `pull_request` ke branch `main`.
+- **Job `build`** (Runner: `ubuntu-latest`):
+  1. Checkout source code.
+  2. Setup environment Python 3.12.
+  3. Install dependencies dari `requirements.txt`.
+  4. Menjalankan unit test otomatis (`unittest`).
+- **Job `sast-scan`** (Runner: `ubuntu-latest`, `needs: build`):
+  1. Checkout kode lengkap (`fetch-depth: 0`).
+  2. Setup environment Python 3.12.
+  3. Install dan jalankan scanner **Bandit**.
+  4. Simpan dan unggah laporan Bandit (`bandit-report.json`) sebagai artifact.
+  5. Eksekusi **Quality Gate Bandit** (`quality_gate.py` memblokir jika ada issue tingkat HIGH / MEDIUM).
+  6. Eksekusi **SonarCloud Scan** menggunakan `sonarcloud-github-action` dan `SONAR_TOKEN`.
 
-**Job `build`** (ubuntu-latest):
-1. Checkout kode
-2. Setup Python 3.12
-3. Install dependencies
-4. Menjalankan unit test
-
-**Job `sast-scan`** (ubuntu-latest, `needs: build`):
-1. Checkout kode
-2. Setup Python 3.12
-3. Install Bandit
-4. Menjalankan Bandit dan menyimpan laporan JSON
-5. Upload laporan sebagai artifact
-6. **Quality Gate**: pipeline GAGAL jika ada temuan HIGH atau MEDIUM,
-   dan LULUS jika tidak ada.
+### B. Workflow CodeQL (`.github/workflows/codeql.yml`)
+- **Trigger:** `push` dan `pull_request` ke branch `main`, serta terjadwal mingguan (`cron`).
+- **Job `analyze`** (Runner: `ubuntu-latest`):
+  1. Checkout kode.
+  2. Inisialisasi engine semantic analysis CodeQL untuk bahasa Python.
+  3. Analisis keamanan mendalam (SAST) dan unggah hasil ke tab **Security (Code scanning)** di GitHub.
